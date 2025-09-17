@@ -14,26 +14,12 @@
       overflow: hidden;
     }
 
-    #loader {
-      position: fixed;
-      top: 0; left: 0;
-      width: 100%; height: 100%;
-      background: #fff;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      font-size: 22px;
-      font-weight: bold;
-      z-index: 500;
-    }
-
     #book {
       position: relative;
       width: 100vw;
       height: 100vh;
       perspective: 2000px;
       overflow: hidden;
-      display: none;
     }
 
     .page {
@@ -133,8 +119,6 @@
   </style>
 </head>
 <body>
-  <div id="loader">Loading Flipbook...</div>
-
   <div id="book"></div>
 
   <!-- Arrows -->
@@ -153,23 +137,20 @@
   <script>
     const totalPages = 48;
     const book = document.getElementById("book");
-    const loader = document.getElementById("loader");
     const pageIndicator = document.getElementById("pageIndicator");
-    const pages = [];
     let current = 0;
+    const pages = [];
     let scale = 1;
     const zoomStep = 0.3;
 
     // Preload all images
-    function preloadImages(callback) {
-      let loaded = 0;
+    const imageCache = [];
+    function preloadImages() {
       for (let i = 1; i <= totalPages; i++) {
+        const num = String(i).padStart(3, "0");
         const img = new Image();
-        img.src = `page_${String(i).padStart(3, "0")}.png`;
-        img.onload = () => {
-          loaded++;
-          if (loaded === totalPages) callback();
-        };
+        img.src = `page_${num}.png`;
+        imageCache.push(img);
       }
     }
 
@@ -199,15 +180,10 @@
         page.classList.toggle("flipped", idx < current);
       });
       pageIndicator.textContent = `Page ${current + 1}/${totalPages}`;
-      applyZoom();
+      applyZoom(); // maintain zoom
     }
 
-    function applyZoom() {
-      const img = pages[current].querySelector("img");
-      img.style.transform = `scale(${scale})`;
-    }
-
-    // Flip with arrows
+    // Navigation
     document.querySelector(".arrow.right").addEventListener("click", () => {
       if (current < totalPages - 1) showPage(current + 1);
     });
@@ -215,7 +191,7 @@
       if (current > 0) showPage(current - 1);
     });
 
-    // Zoom
+    // Zoom controls
     document.getElementById("zoomIn").addEventListener("click", () => {
       scale = Math.min(scale + zoomStep, 4);
       applyZoom();
@@ -229,6 +205,11 @@
       applyZoom();
     });
 
+    function applyZoom() {
+      const img = pages[current].querySelector("img");
+      img.style.transform = `scale(${scale})`;
+    }
+
     // Fullscreen
     document.getElementById("fullscreen").addEventListener("click", () => {
       if (!document.fullscreenElement) {
@@ -238,13 +219,18 @@
       }
     });
 
-    // Load everything
-    preloadImages(() => {
-      loader.style.display = "none";
-      book.style.display = "block";
-      createPages();
-      showPage(0);
-    });
+    // Init
+    preloadImages();
+    createPages();
+    showPage(0);
+
+    // Register Service Worker
+    if ("serviceWorker" in navigator) {
+      navigator.serviceWorker
+        .register("sw.js")
+        .then(reg => console.log("Service Worker registered:", reg))
+        .catch(err => console.log("SW registration failed:", err));
+    }
   </script>
 </body>
 </html>

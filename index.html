@@ -126,7 +126,7 @@
   <div class="arrow right">&#8250;</div>
 
   <!-- Controls -->
-  <div id="pageIndicator">Page 1/10</div>
+  <div id="pageIndicator">Page 1/48</div>
   <div class="controls">
     <button class="btn" id="resetZoom">Reset</button>
     <button class="btn" id="zoomIn">+</button>
@@ -135,7 +135,7 @@
   </div>
 
   <script>
-    const totalPages = 10;
+    const totalPages = 48;
     const book = document.getElementById("book");
     const pageIndicator = document.getElementById("pageIndicator");
     let current = 0;
@@ -169,7 +169,7 @@
         page.classList.toggle("flipped", idx < current);
       });
       pageIndicator.textContent = `Page ${current + 1}/${totalPages}`;
-      applyZoom(); // maintain zoom after flipping
+      applyZoom();
     }
 
     // Flip with arrows
@@ -211,6 +211,13 @@
     // Init
     createPages();
     showPage(0);
+
+    // Register Service Worker
+    if ('serviceWorker' in navigator) {
+      navigator.serviceWorker.register('sw.js')
+        .then(reg => console.log("SW registered:", reg))
+        .catch(err => console.log("SW registration failed:", err));
+    }
   </script>
 </body>
 </html>

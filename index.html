@@ -21,6 +21,7 @@
       overflow: hidden;
     }
 
+    /* Loading screen */
     #loading {
       position: fixed;
       top: 50%;
@@ -28,6 +29,11 @@
       transform: translate(-50%, -50%);
       font-size: 1.2em;
       color: #444;
+      background: rgba(255,255,255,0.95);
+      padding: 20px 30px;
+      border-radius: 8px;
+      box-shadow: 0 0 10px rgba(0,0,0,0.2);
+      z-index: 500;
     }
 
     #book {
@@ -71,6 +77,7 @@
       transition: transform 0.2s ease;
     }
 
+    /* Arrows */
     .arrow {
       position: absolute;
       top: 50%;
@@ -78,7 +85,7 @@
       font-size: 40px;
       font-weight: bold;
       color: rgba(0,0,0,0.6);
-      background: rgba(255,255,255,0.8);
+      background: rgba(255,255,255,0.85);
       border-radius: 50%;
       width: 50px;
       height: 50px;
@@ -91,13 +98,14 @@
     }
 
     .arrow:hover {
-      background: rgba(0,0,0,0.8);
+      background: rgba(0,0,0,0.85);
       color: #fff;
     }
 
-    .arrow.left { left: 10px; }
-    .arrow.right { right: 10px; }
+    .arrow.left { left: 15px; }
+    .arrow.right { right: 15px; }
 
+    /* Controls */
     .controls {
       position: fixed;
       bottom: 15px;
@@ -122,6 +130,7 @@
       background: rgba(0,0,0,0.9);
     }
 
+    /* Page number indicator */
     #pageIndicator {
       position: fixed;
       bottom: 15px;
@@ -136,7 +145,7 @@
   </style>
 </head>
 <body>
-  <div id="loading">Loading catalogue...</div>
+  <div id="loading">Loading catalogue... 0%</div>
   <div id="book"></div>
 
   <!-- Arrows -->
@@ -162,6 +171,7 @@
     let scale = 1;
     const zoomStep = 0.3;
 
+    // Preload images with progress
     function preloadImages() {
       let loaded = 0;
       return new Promise((resolve) => {
@@ -170,12 +180,14 @@
           img.src = `page_${String(i).padStart(3, "0")}.png`;
           img.onload = img.onerror = () => {
             loaded++;
+            loading.textContent = `Loading catalogue... ${Math.round((loaded / totalPages) * 100)}%`;
             if (loaded === totalPages) resolve();
           };
         }
       });
     }
 
+    // Build flipbook pages
     function createPages() {
       for (let i = 1; i <= totalPages; i++) {
         const page = document.createElement("div");
@@ -196,6 +208,7 @@
       }
     }
 
+    // Show a given page
     function showPage(n) {
       current = Math.max(0, Math.min(n, totalPages - 1));
       pages.forEach((page, idx) => {
@@ -213,7 +226,7 @@
       if (current > 0) showPage(current - 1);
     });
 
-    // Zoom
+    // Zoom controls
     document.getElementById("zoomIn").addEventListener("click", () => {
       scale = Math.min(scale + zoomStep, 4);
       applyZoom();
@@ -232,7 +245,7 @@
       img.style.transform = `scale(${scale})`;
     }
 
-    // Fullscreen
+    // Fullscreen toggle
     document.getElementById("fullscreen").addEventListener("click", () => {
       if (!document.fullscreenElement) {
         document.documentElement.requestFullscreen();
@@ -241,7 +254,7 @@
       }
     });
 
-    // Init after preload
+    // Start after preloading
     preloadImages().then(() => {
       createPages();
       loading.style.display = "none";

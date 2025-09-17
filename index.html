@@ -6,7 +6,6 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no" />
   <meta name="theme-color" content="#000000">
 
-  <!-- PWA Manifest -->
   <link rel="manifest" href="manifest.json">
   <link rel="icon" type="image/png" sizes="192x192" href="icon-192.png">
   <link rel="icon" type="image/png" sizes="512x512" href="icon-512.png">
@@ -21,7 +20,6 @@
       overflow: hidden;
     }
 
-    /* Loading overlay */
     #loading {
       position: fixed;
       top: 0;
@@ -77,7 +75,6 @@
       transition: transform 0.2s ease;
     }
 
-    /* Arrows */
     .arrow {
       position: absolute;
       top: 50%;
@@ -105,7 +102,6 @@
     .arrow.left { left: 15px; }
     .arrow.right { right: 15px; }
 
-    /* Controls */
     .controls {
       position: fixed;
       bottom: 15px;
@@ -130,7 +126,6 @@
       background: rgba(0,0,0,0.9);
     }
 
-    /* Page number indicator */
     #pageIndicator {
       position: fixed;
       bottom: 15px;
@@ -171,7 +166,7 @@
     let scale = 1;
     const zoomStep = 0.3;
 
-    // Build flipbook pages (immediately visible)
+    // Create pages but only load the first image immediately
     function createPages() {
       for (let i = 1; i <= totalPages; i++) {
         const page = document.createElement("div");
@@ -182,7 +177,11 @@
         inner.className = "page-inner";
 
         const img = document.createElement("img");
-        img.src = `page_${String(i).padStart(3, "0")}.png`;
+        if (i === 1) {
+          img.src = `page_001.png`; // show first page immediately
+        } else {
+          img.dataset.src = `page_${String(i).padStart(3, "0")}.png`; // lazy load
+        }
         img.alt = `Page ${i}`;
 
         inner.appendChild(img);
@@ -192,7 +191,6 @@
       }
     }
 
-    // Show a given page
     function showPage(n) {
       current = Math.max(0, Math.min(n, totalPages - 1));
       pages.forEach((page, idx) => {
@@ -202,7 +200,7 @@
       applyZoom();
     }
 
-    // Flip with arrows
+    // Flip controls
     document.querySelector(".arrow.right").addEventListener("click", () => {
       if (current < totalPages - 1) showPage(current + 1);
     });
@@ -238,20 +236,26 @@
       }
     });
 
-    // Preload images with progress
+    // Preload images sequentially after showing page 1
     function preloadImages() {
-      let loaded = 0;
-      for (let i = 1; i <= totalPages; i++) {
+      let loaded = 1; // already loaded page_001.png
+      function loadNext(i) {
+        if (i > totalPages) {
+          loading.style.display = "none";
+          return;
+        }
         const img = new Image();
         img.src = `page_${String(i).padStart(3, "0")}.png`;
         img.onload = img.onerror = () => {
           loaded++;
           loading.textContent = `Loading catalogue... ${Math.round((loaded / totalPages) * 100)}%`;
-          if (loaded === totalPages) {
-            loading.style.display = "none";
-          }
+          // inject real src into flipbook
+          const target = pages[i - 1].querySelector("img");
+          target.src = img.src;
+          loadNext(i + 1);
         };
       }
+      loadNext(2); // start from page_002
     }
 
     // Init

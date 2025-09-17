@@ -4,6 +4,13 @@
   <meta charset="UTF-8">
   <title>Catalogue Flipbook</title>
   <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no" />
+  <meta name="theme-color" content="#000000">
+
+  <!-- PWA Manifest -->
+  <link rel="manifest" href="manifest.json">
+  <link rel="icon" type="image/png" sizes="192x192" href="icon-192.png">
+  <link rel="icon" type="image/png" sizes="512x512" href="icon-512.png">
+
   <style>
     html, body {
       margin: 0;
@@ -14,12 +21,22 @@
       overflow: hidden;
     }
 
+    #loading {
+      position: fixed;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      font-size: 1.2em;
+      color: #444;
+    }
+
     #book {
       position: relative;
       width: 100vw;
       height: 100vh;
       perspective: 2000px;
       overflow: hidden;
+      display: none;
     }
 
     .page {
@@ -119,6 +136,7 @@
   </style>
 </head>
 <body>
+  <div id="loading">Loading catalogue...</div>
   <div id="book"></div>
 
   <!-- Arrows -->
@@ -138,20 +156,24 @@
     const totalPages = 48;
     const book = document.getElementById("book");
     const pageIndicator = document.getElementById("pageIndicator");
+    const loading = document.getElementById("loading");
     let current = 0;
     const pages = [];
     let scale = 1;
     const zoomStep = 0.3;
 
-    // Preload all images
-    const imageCache = [];
     function preloadImages() {
-      for (let i = 1; i <= totalPages; i++) {
-        const num = String(i).padStart(3, "0");
-        const img = new Image();
-        img.src = `page_${num}.png`;
-        imageCache.push(img);
-      }
+      let loaded = 0;
+      return new Promise((resolve) => {
+        for (let i = 1; i <= totalPages; i++) {
+          const img = new Image();
+          img.src = `page_${String(i).padStart(3, "0")}.png`;
+          img.onload = img.onerror = () => {
+            loaded++;
+            if (loaded === totalPages) resolve();
+          };
+        }
+      });
     }
 
     function createPages() {
@@ -180,10 +202,10 @@
         page.classList.toggle("flipped", idx < current);
       });
       pageIndicator.textContent = `Page ${current + 1}/${totalPages}`;
-      applyZoom(); // maintain zoom
+      applyZoom();
     }
 
-    // Navigation
+    // Flip with arrows
     document.querySelector(".arrow.right").addEventListener("click", () => {
       if (current < totalPages - 1) showPage(current + 1);
     });
@@ -191,7 +213,7 @@
       if (current > 0) showPage(current - 1);
     });
 
-    // Zoom controls
+    // Zoom
     document.getElementById("zoomIn").addEventListener("click", () => {
       scale = Math.min(scale + zoomStep, 4);
       applyZoom();
@@ -219,16 +241,18 @@
       }
     });
 
-    // Init
-    preloadImages();
-    createPages();
-    showPage(0);
+    // Init after preload
+    preloadImages().then(() => {
+      createPages();
+      loading.style.display = "none";
+      book.style.display = "block";
+      showPage(0);
+    });
 
     // Register Service Worker
-    if ("serviceWorker" in navigator) {
-      navigator.serviceWorker
-        .register("sw.js")
-        .then(reg => console.log("Service Worker registered:", reg))
+    if ('serviceWorker' in navigator) {
+      navigator.serviceWorker.register('sw.js')
+        .then(() => console.log("Service Worker Registered"))
         .catch(err => console.log("SW registration failed:", err));
     }
   </script>
